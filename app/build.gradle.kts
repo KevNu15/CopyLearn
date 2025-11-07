@@ -5,9 +5,7 @@ plugins {
 
 android {
     namespace = "com.example.copylearn"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.copylearn"
@@ -47,3 +45,27 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
+
+
+// --- ML Kit Text Recognition (enable only when requested) ---
+// dependencies {
+//     // On-device text recognition (Latin)
+//     // Use the latest stable per docs if different:
+//     // https://developers.google.com/ml-kit/vision/text-recognition/android
+//     // implementation("com.google.mlkit:text-recognition:16.0.0")
+//
+//     // If you plan to use the suspend `.await()` helper (optional):
+//     // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+// }
+//
+// android {
+//     // No changes required here for now.
+//     // If you target Java 17, ensure:
+//     // compileOptions {
+//     //     sourceCompatibility = JavaVersion.VERSION_17
+//     //     targetCompatibility = JavaVersion.VERSION_17
+//     // }
+//     // kotlinOptions {
+//     //     jvmTarget = "17"
+//     // }
+// }
