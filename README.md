@@ -118,3 +118,33 @@ Para mantener control de versiones y revisiones del profesor:
 * ✅ Profesor agregado con permiso *Write*.
 * 🔄 En desarrollo: flujo cámara/galería → OCR → edición → guardado.
 * ⏳ Próximos pasos: búsqueda en historial, exportación `.txt` y mejoras de UX.
+
+
+
+
+# CopyLearn (baseline over Census structure)
+
+Android app (Kotlin + XML) following the **Census** project structure (Entity, Data, Controller, Util).
+Goal: capture a photo and **scan text (OCR)**. Current state uses a **stub OCR**; ML Kit is prepared but disabled.
+
+## Modules / Layers
+- `Entity/Document`, `Entity/Language`
+- `Data/IDataManager`, `Data/MemoryDataManager` (in-memory)
+- `Controller/DocumentController`
+- `Util/ImageFileUtil` (camera FileProvider), `Util/OcrUtil` (stub), `Util/OcrUtilMlKit` (skeleton)
+- Activities: `MainActivity`, `DocumentActivity`, `DocumentListActivity`
+
+## Run
+1. Open in Android Studio (AGP 8.x, Kotlin 2.0.x, compile/target SDK 36).
+2. Build & run.
+   - In **Document** screen: tap **Image URI** to capture; tap **Scan** to run OCR (stub).
+   - List screen supports search.
+
+## Enable ML Kit (only when requested by professor)
+1. In `app/build.gradle.kts`, add (uncomment and sync):
+   ```kotlin
+   dependencies {
+       implementation("com.google.mlkit:text-recognition:16.0.0")
+       // optional:
+       // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+   }

@@ -1,0 +1,53 @@
+<resources>
+    <!-- App / Main -->
+    <string name="app_name">CopyLearn</string>
+    <string name="main_title">CopyLearn</string>
+    <string name="main_new_document">New document</string>
+    <string name="main_list_documents">Document list</string>
+
+    <!-- Form labels -->
+    <string name="doc_title_label">Title</string>
+    <string name="doc_title_hint">Enter title</string>
+    <string name="doc_date_label">Capture date</string>
+    <string name="doc_date_placeholder">YYYY-MM-DD</string>
+    <string name="doc_date_pick">Pick</string>
+    <string name="doc_image_label">Image URI</string>
+    <string name="doc_image_hint">content:// or file://</string>
+    <string name="doc_language_label">Language</string>
+    <string name="doc_confidence_label">OCR confidence (0..1)</string>
+    <string name="doc_confidence_hint">e.g., 0.92</string>
+    <string name="doc_text_label">Recognized text</string>
+    <string name="doc_text_hint">OCR result here</string>
+
+    <!-- Actions -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_scan">Scan</string>
+    <string name="action_delete">Delete</string>
+    <string name="dlg_yes">Yes</string>
+    <string name="dlg_no">No</string>
+
+    <!-- Dialogs -->
+    <string name="dlg_update_title">Confirm update</string>
+    <string name="dlg_update_msg">Do you want to update this document?</string>
+    <string name="dlg_delete_title">Confirm delete</string>
+    <string name="dlg_delete_msg">This action cannot be undone. Delete this document?</string>
+
+    <!-- Messages -->
+    <string name="msg_saved">Document saved</string>
+    <string name="msg_loaded">Document loaded</string>
+    <string name="msg_deleted">Document deleted</string>
+    <string name="err_title_required">Title is required.</string>
+    <string name="err_image_required">ImageUri is required.</string>
+    <string name="err_doc_not_found">Document not found.</string>
+    <string name="msg_delete_unavailable">Delete is not available in this screen.</string>
+    <string name="msg_set_or_capture_image">Set or capture an ImageUri first.</string>
+    <string name="msg_image_captured">Image captured</string>
+    <string name="msg_capture_canceled">Capture canceled</string>
+    <string name="msg_ocr_stub_used">OCR (stub) used</string>
+    <string name="msg_ocr_mlkit_done">OCR (ML Kit) complete</string>
+
+    <!-- List -->
+    <string name="list_search_hint">Search documents</string>
+    <string name="list_empty">No documents found</string>
+</resources>
