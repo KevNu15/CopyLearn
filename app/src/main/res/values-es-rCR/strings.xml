@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CopyLearn</string>
+    <string name="main_title">CopyLearn</string>
+    <string name="main_new_document">Nuevo documento</string>
+    <string name="main_list_documents">Lista de documentos</string>
+    <string name="doc_title_label">Título</string>
+    <string name="doc_title_hint">Ingrese el título</string>
+    <string name="doc_date_label">Fecha de captura</string>
+    <string name="doc_date_placeholder">AAAA-MM-DD</string>
+    <string name="doc_date_pick">Seleccionar</string>
+    <string name="doc_image_label">Imagen</string>
+    <string name="doc_image_button">Seleccionar imagen</string>
+    <string name="doc_text_label">Texto reconocido</string>
+    <string name="doc_text_hint">El resultado del OCR aparecerá aquí</string>
+    <string name="dlg_image_picker_title">Seleccionar origen de la imagen</string>
+    <string name="dlg_image_camera">Tomar foto</string>
+    <string name="dlg_image_gallery">Elegir desde la galería</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_scan">Escanear</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="dlg_yes">Sí</string>
+    <string name="dlg_no">No</string>
+    <string name="dlg_update_title">Confirmar actualización</string>
+    <string name="dlg_update_msg">¿Desea actualizar este documento?</string>
+    <string name="dlg_delete_title">Eliminar documento</string>
+    <string name="dlg_delete_msg">Esta acción no se puede deshacer.</string>
+    <string name="msg_saved">Documento guardado</string>
+    <string name="msg_loaded">Documento cargado</string>
+    <string name="msg_deleted">Documento eliminado</string>
+    <string name="err_title_required">El título es obligatorio.</string>
+    <string name="err_image_required">La imagen es obligatoria.</string>
+    <string name="err_doc_not_found">Documento no encontrado.</string>
+    <string name="msg_delete_unavailable">No es posible eliminar documentos sin guardar.</string>
+    <string name="msg_image_captured">Imagen capturada correctamente.</string>
+    <string name="msg_capture_canceled">Captura cancelada.</string>
+    <string name="msg_ocr_processing">Procesando OCR…</string>
+    <string name="msg_ocr_success">Texto reconocido correctamente.</string>
+    <string name="msg_ocr_failed">Error en el OCR. Inténtelo de nuevo.</string>
+    <string name="msg_no_image">Primero seleccione una imagen.</string>
+    <string name="list_search_hint">Buscar documentos</string>
+    <string name="list_empty">No se encontraron documentos.</string>
+</resources>

@@ -5,6 +5,11 @@ import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 
+/**
+ * Pantalla principal con dos botones:
+ * - Nuevo documento (abre DocumentActivity)
+ * - Lista de documentos (abre DocumentListActivity)
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var btnNew: Button
@@ -20,6 +25,7 @@ class MainActivity : AppCompatActivity() {
         btnNew.setOnClickListener {
             startActivity(Intent(this, DocumentActivity::class.java))
         }
+
         btnList.setOnClickListener {
             startActivity(Intent(this, DocumentListActivity::class.java))
         }

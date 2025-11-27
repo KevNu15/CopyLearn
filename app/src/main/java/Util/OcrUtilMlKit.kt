@@ -2,52 +2,28 @@ package Util
 
 import android.content.Context
 import android.net.Uri
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.tasks.await
 
 /**
- * Skeleton de OCR con ML Kit.
+ * Utilidad de OCR con ML Kit Text Recognition (ACTIVADO).
  *
- * Nota: Este archivo está diseñado para COMPILAR sin dependencias externas.
- * Por eso, la función extractText() llama inmediatamente a onError(...) para
- * que la Activity haga fallback al stub (OcrUtil).
- *
- * Cuando decidas habilitar ML Kit:
- *  1) Agrega las dependencias en build.gradle.kts (app).
- *  2) Reemplaza el cuerpo de extractText() por el código de ejemplo que
- *     está al final de este archivo (comentado).
+ * Uso recomendado: llamar extractText() con callbacks para no bloquear UI.
  */
 object OcrUtilMlKit {
 
     data class OcrResult(val text: String, val confidence: Double)
 
-    /** API basada en callbacks (no bloquea UI). */
-    fun extractText(
-        context: Context,
-        imageUri: Uri,
-        onResult: (OcrResult) -> Unit,
-        onError: (Exception) -> Unit
-    ) {
-        // ML Kit aún NO está habilitado: devolvemos error para que el caller
-        // use el fallback (OcrUtil) sin romper la compilación.
-        onError(IllegalStateException("ML Kit is not enabled in this build."))
-    }
-
-    /** Versión suspend (no usada de momento). */
-    @Suppress("UNUSED_PARAMETER")
-    suspend fun extractTextSuspend(
-        context: Context,
-        imageUri: Uri
-    ): OcrResult {
-        throw IllegalStateException("ML Kit is not enabled in this build.")
-    }
-
-    /* ------------------ EJEMPLO REAL (COMENTADO) ------------------
-    // Habilitar luego de agregar dependencias:
-
-    // import com.google.mlkit.vision.common.InputImage
-    // import com.google.mlkit.vision.text.TextRecognition
-    // import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-    // import kotlinx.coroutines.tasks.await
-
+    /**
+     * Extrae texto de una imagen usando ML Kit (callback-based).
+     *
+     * @param context Contexto para resolver el Uri
+     * @param imageUri Uri de la imagen (content:// o file://)
+     * @param onResult Callback con el resultado exitoso
+     * @param onError Callback en caso de error
+     */
     fun extractText(
         context: Context,
         imageUri: Uri,
@@ -57,25 +33,32 @@ object OcrUtilMlKit {
         try {
             val image = InputImage.fromFilePath(context, imageUri)
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
             recognizer.process(image)
-                .addOnSuccessListener { txt ->
-                    val text = txt.text ?: ""
-                    onResult(OcrResult(text = text, confidence = 0.95))
+                .addOnSuccessListener { visionText ->
+                    val text = visionText.text
+                    // ML Kit no devuelve confianza global, asignamos valor alto
+                    val result = OcrResult(text = text, confidence = 0.95)
+                    onResult(result)
                 }
-                .addOnFailureListener { e -> onError(e) }
+                .addOnFailureListener { exception ->
+                    onError(exception)
+                }
         } catch (e: Exception) {
             onError(e)
         }
     }
 
+    /**
+     * Versión suspend para uso con coroutines (opcional).
+     */
     suspend fun extractTextSuspend(
         context: Context,
         imageUri: Uri
     ): OcrResult {
         val image = InputImage.fromFilePath(context, imageUri)
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        val txt = recognizer.process(image).await()
-        return OcrResult(text = txt.text ?: "", confidence = 0.95)
+        val visionText = recognizer.process(image).await()
+        return OcrResult(text = visionText.text, confidence = 0.95)
     }
-    ---------------------------------------------------------------- */
 }
