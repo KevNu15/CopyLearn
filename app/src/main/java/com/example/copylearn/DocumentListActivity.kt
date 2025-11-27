@@ -4,41 +4,54 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.ArrayAdapter
-import android.widget.ListView
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import Controller.DocumentController
-import Data.MemoryDataManager
+import Data.DataManagerSingleton
 import Entity.Document
 
 class DocumentListActivity : AppCompatActivity() {
 
     private lateinit var controller: DocumentController
-    private lateinit var listView: ListView
+    private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
     private lateinit var searchView: SearchView
+    private lateinit var adapter: DocumentAdapter
 
-    private lateinit var adapter: ArrayAdapter<String>
-    private var currentDocs: MutableList<Document> = mutableListOf()
+    private var currentDocs: List<Document> = listOf()
     private var lastQuery: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_document_list)
 
-        controller = DocumentController(MemoryDataManager())
+        // Usar el singleton compartido
+        controller = DocumentController(DataManagerSingleton.getInstance())
 
-        listView = findViewById(R.id.lvDocuments)
+        recyclerView = findViewById(R.id.rvDocuments)
         emptyView = findViewById(R.id.txtEmpty)
         searchView = findViewById(R.id.svSearch)
-        listView.emptyView = emptyView
 
-        // <<< FIX: layout seguro de Android con TextView interno >>>
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
-        listView.adapter = adapter
+        // Configurar RecyclerView
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter = DocumentAdapter(
+            documents = listOf(),
+            onItemClick = { doc ->
+                startActivity(
+                    Intent(this, DocumentActivity::class.java).putExtra("doc_id", doc.ID)
+                )
+            },
+            onDeleteClick = { doc ->
+                confirmDelete(doc)
+            }
+        )
+        recyclerView.adapter = adapter
 
         refreshList("")
 
@@ -48,23 +61,13 @@ class DocumentListActivity : AppCompatActivity() {
                 refreshList(lastQuery)
                 return true
             }
+
             override fun onQueryTextChange(newText: String?): Boolean {
                 lastQuery = newText ?: ""
                 refreshList(lastQuery)
                 return true
             }
         })
-
-        listView.setOnItemClickListener { _, _, position, _ ->
-            val doc = currentDocs.getOrNull(position)
-            if (doc != null) {
-                startActivity(
-                    Intent(this, DocumentActivity::class.java).putExtra("doc_id", doc.ID)
-                )
-            } else {
-                Toast.makeText(this, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 
     override fun onResume() {
@@ -79,16 +82,50 @@ class DocumentListActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.menuNew -> { startActivity(Intent(this, DocumentActivity::class.java)); true }
+            R.id.menuNew -> {
+                startActivity(Intent(this, DocumentActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
+    private fun confirmDelete(doc: Document) {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dlg_delete_title))
+            .setMessage("${getString(R.string.dlg_delete_msg)}\n\n\"${doc.Title}\"")
+            .setPositiveButton(getString(R.string.dlg_yes)) { _, _ ->
+                deleteDocument(doc)
+            }
+            .setNegativeButton(getString(R.string.dlg_no), null)
+            .show()
+    }
+
+    private fun deleteDocument(doc: Document) {
+        val success = controller.Delete(doc.ID)
+        if (success) {
+            Toast.makeText(this, getString(R.string.msg_deleted), Toast.LENGTH_SHORT).show()
+            refreshList(lastQuery)
+        } else {
+            Toast.makeText(this, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun refreshList(query: String) {
-        currentDocs = if (query.isBlank()) controller.GetAll() else controller.Search(query)
-        val titles = currentDocs.map { it.Title }
-        adapter.clear()
-        adapter.addAll(titles)
-        adapter.notifyDataSetChanged()
+        currentDocs = if (query.isBlank()) {
+            controller.GetAll()
+        } else {
+            controller.Search(query)
+        }
+
+        if (currentDocs.isEmpty()) {
+            recyclerView.visibility = View.GONE
+            emptyView.visibility = View.VISIBLE
+        } else {
+            recyclerView.visibility = View.VISIBLE
+            emptyView.visibility = View.GONE
+        }
+
+        adapter.updateDocuments(currentDocs)
     }
 }

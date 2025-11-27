@@ -6,16 +6,7 @@
         android:title="@string/action_save"
         app:showAsAction="always" />
     <item
-        android:id="@+id/menuScan"
-        android:title="@string/action_scan"
-        android:icon="@drawable/ic_camera"
-        app:showAsAction="ifRoom" />
-    <item
         android:id="@+id/menuDelete"
         android:title="@string/action_delete"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/menuCancel"
-        android:title="@string/action_cancel"
         app:showAsAction="never" />
 </menu>

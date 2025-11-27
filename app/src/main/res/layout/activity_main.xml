@@ -2,17 +2,40 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
     android:orientation="vertical"
+    android:gravity="center"
     android:padding="24dp">
 
+    <!-- Logo pequeño arriba de los botones -->
+    <ImageView
+        android:id="@+id/imgLogo"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/copylearn"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter" />
+
+    <!-- Nombre debajo del logo -->
+    <TextView
+        android:id="@+id/tvOwnerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:text="Kevin Núñez"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Botón: New Document -->
     <Button
         android:id="@+id/btnNewDocument"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/main_new_document"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"
+        android:text="@string/main_new_document" />
 
+    <!-- Botón: Document List -->
     <Button
         android:id="@+id/btnDocumentList"
         android:layout_width="match_parent"

@@ -1,27 +1,29 @@
 package com.example.copylearn
 
+import android.Manifest
 import android.app.DatePickerDialog
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import Controller.DocumentController
-import Data.MemoryDataManager
+import Data.DataManagerSingleton
 import Entity.Document
 import Entity.Language
 import Util.ImageFileUtil
-import Util.OcrUtil
 import Util.OcrUtilMlKit
 import java.time.LocalDate
 
 class DocumentActivity : AppCompatActivity() {
 
     private lateinit var controller: DocumentController
-    private lateinit var languages: MutableList<Language>
     private var selectedDate: LocalDate = LocalDate.now()
     private var currentId: String? = null
     private var captureUri: Uri? = null
@@ -30,26 +32,41 @@ class DocumentActivity : AppCompatActivity() {
     private lateinit var edtTitle: EditText
     private lateinit var txtDate: TextView
     private lateinit var btnPickDate: Button
-    private lateinit var edtImageUri: EditText
+    private lateinit var btnSelectImage: Button
+    private lateinit var txtImageStatus: TextView
     private lateinit var edtRecognized: EditText
-    private lateinit var spnLanguage: Spinner
-    private lateinit var edtConfidence: EditText
     private lateinit var btnSave: Button
     private lateinit var btnCancel: Button
-    private lateinit var btnScan: Button
 
     // Camera launcher
     private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             captureUri?.let { uri ->
-                edtImageUri.setText(uri.toString())
+                onImageSelected(uri)
                 Toast.makeText(this, getString(R.string.msg_image_captured), Toast.LENGTH_SHORT).show()
-                val result = OcrUtil.extractText(this, uri)
-                edtRecognized.setText(result.text)
-                edtConfidence.setText(result.confidence.toString())
             }
         } else {
             Toast.makeText(this, getString(R.string.msg_capture_canceled), Toast.LENGTH_SHORT).show()
+            captureUri = null
+        }
+    }
+
+    // Gallery launcher
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            captureUri = it
+            onImageSelected(it)
+        }
+    }
+
+    // Camera permission launcher
+    private val requestCameraPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            openCamera()
+        } else {
+            Toast.makeText(this, "Camera permission is required to take photos", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -57,24 +74,20 @@ class DocumentActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_document)
 
-        controller = DocumentController(MemoryDataManager())
-        languages = controller.GetLanguages()
+        // Usar el singleton compartido
+        controller = DocumentController(DataManagerSingleton.getInstance())
 
         edtTitle = findViewById(R.id.edtTitle)
         txtDate = findViewById(R.id.txtDate)
         btnPickDate = findViewById(R.id.btnPickDate)
-        edtImageUri = findViewById(R.id.edtImageUri)
+        btnSelectImage = findViewById(R.id.btnSelectImage)
+        txtImageStatus = findViewById(R.id.txtImageStatus)
         edtRecognized = findViewById(R.id.edtRecognizedText)
-        spnLanguage = findViewById(R.id.spnLanguage)
-        edtConfidence = findViewById(R.id.edtConfidence)
         btnSave = findViewById(R.id.btnSave)
         btnCancel = findViewById(R.id.btnCancel)
-        btnScan = findViewById(R.id.btnScan)
-
-        val names = languages.map { "${it.Name} (${it.Code})" }
-        spnLanguage.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, names)
 
         txtDate.text = selectedDate.toString()
+
         btnPickDate.setOnClickListener {
             val d = selectedDate
             DatePickerDialog(
@@ -87,18 +100,12 @@ class DocumentActivity : AppCompatActivity() {
             ).show()
         }
 
-        // Cámara al tocar ImageUri (enviar SIEMPRE Uri no-nulo al launcher)
-        edtImageUri.isFocusable = false
-        edtImageUri.isClickable = true
-        edtImageUri.setOnClickListener {
-            val targetUri: Uri = ImageFileUtil.createImageUri(this)
-            captureUri = targetUri
-            takePicture.launch(targetUri)
+        btnSelectImage.setOnClickListener {
+            showImageSourceDialog()
         }
 
         btnSave.setOnClickListener { attemptSave() }
         btnCancel.setOnClickListener { finish() }
-        btnScan.setOnClickListener { runOcr() }
 
         intent?.getStringExtra("doc_id")?.let { id ->
             currentId = id
@@ -114,14 +121,99 @@ class DocumentActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menuSave -> { attemptSave(); true }
-            R.id.menuCancel -> { finish(); true }
-            R.id.menuScan -> { runOcr(); true }
             R.id.menuDelete -> { attemptDelete(); true }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
-    // ---- CRUD helpers with dialogs ----
+    private fun showImageSourceDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dlg_image_picker_title))
+            .setItems(arrayOf(
+                getString(R.string.dlg_image_camera),
+                getString(R.string.dlg_image_gallery)
+            )) { _, which ->
+                when (which) {
+                    0 -> launchCamera()
+                    1 -> launchGallery()
+                }
+            }
+            .show()
+    }
+
+    private fun launchCamera() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission already granted
+                openCamera()
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
+                // Show explanation and request permission
+                AlertDialog.Builder(this)
+                    .setTitle("Camera Permission Required")
+                    .setMessage("This app needs camera access to take photos of documents.")
+                    .setPositiveButton("OK") { _, _ ->
+                        requestCameraPermission.launch(Manifest.permission.CAMERA)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+            else -> {
+                // Request permission directly
+                requestCameraPermission.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
+
+    private fun openCamera() {
+        try {
+            val targetUri: Uri = ImageFileUtil.createImageUri(this)
+            captureUri = targetUri
+            takePicture.launch(targetUri)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error opening camera: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
+        }
+    }
+
+    private fun launchGallery() {
+        pickImage.launch("image/*")
+    }
+
+    private fun onImageSelected(uri: Uri) {
+        captureUri = uri
+        txtImageStatus.text = "Image: ${uri.lastPathSegment ?: uri.toString()}"
+        txtImageStatus.visibility = View.VISIBLE
+
+        // Ejecutar OCR automáticamente
+        runOcr()
+    }
+
+    private fun runOcr() {
+        val uri = captureUri
+        if (uri == null) {
+            Toast.makeText(this, getString(R.string.msg_no_image), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Toast.makeText(this, getString(R.string.msg_ocr_processing), Toast.LENGTH_SHORT).show()
+
+        OcrUtilMlKit.extractText(
+            context = this,
+            imageUri = uri,
+            onResult = { result ->
+                edtRecognized.setText(result.text)
+                Toast.makeText(this, getString(R.string.msg_ocr_success), Toast.LENGTH_SHORT).show()
+            },
+            onError = { exception ->
+                Toast.makeText(this, "${getString(R.string.msg_ocr_failed)}: ${exception.message}", Toast.LENGTH_LONG).show()
+            }
+        )
+    }
+
     private fun attemptSave() {
         if (!currentId.isNullOrBlank()) {
             AlertDialog.Builder(this)
@@ -146,25 +238,26 @@ class DocumentActivity : AppCompatActivity() {
             .setMessage(getString(R.string.dlg_delete_msg))
             .setPositiveButton(getString(R.string.dlg_yes)) { _, _ ->
                 val ok = controller.Delete(id)
-                if (ok) { Toast.makeText(this, getString(R.string.msg_deleted), Toast.LENGTH_SHORT).show(); finish() }
-                else     { Toast.makeText(this, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show() }
+                if (ok) {
+                    Toast.makeText(this, getString(R.string.msg_deleted), Toast.LENGTH_SHORT).show()
+                    finish()
+                } else {
+                    Toast.makeText(this, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton(getString(R.string.dlg_no), null)
             .show()
     }
 
     private fun commitSave() {
-        val idx = spnLanguage.selectedItemPosition.coerceIn(0, languages.lastIndex)
-        val lang = languages[idx]
-
         val doc = Document().apply {
             if (!currentId.isNullOrBlank()) ID = currentId!!
             Title = edtTitle.text.toString()
             CaptureDate = selectedDate
-            ImageUri = edtImageUri.text.toString()
+            ImageUri = captureUri?.toString() ?: ""
             RecognizedText = edtRecognized.text.toString()
-            Language = lang
-            OcrConfidence = edtConfidence.text.toString().toDoubleOrNull() ?: 0.0
+            Language = Language("en", "English") // Default
+            OcrConfidence = 0.95 // Default confidence
         }
 
         val ok = controller.Save(doc)
@@ -176,49 +269,14 @@ class DocumentActivity : AppCompatActivity() {
         }
     }
 
-    private fun runOcr() {
-        // 1) Construye el Uri (nullable)
-        val maybeUri: Uri? = if (!edtImageUri.text.isNullOrBlank()) {
-            runCatching { Uri.parse(edtImageUri.text.toString()) }.getOrNull()
-        } else {
-            captureUri
-        }
-
-        // 2) Valida y retorna temprano
-        if (maybeUri == null) {
-            Toast.makeText(this, getString(R.string.msg_set_or_capture_image), Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // 3) A partir de aquí 'uri' es no-nulo
-        val uri: Uri = maybeUri
-
-        // 4) Intenta ML Kit (skeleton) y si no está habilitado, usa el stub
-        OcrUtilMlKit.extractText(
-            context = this,
-            imageUri = uri,
-            onResult = { res ->
-                edtRecognized.setText(res.text)
-                edtConfidence.setText(res.confidence.toString())
-                Toast.makeText(this, getString(R.string.msg_ocr_mlkit_done), Toast.LENGTH_SHORT).show()
-            },
-            onError = {
-                val res = OcrUtil.extractText(this, uri)
-                edtRecognized.setText(res.text)
-                edtConfidence.setText(res.confidence.toString())
-                Toast.makeText(this, getString(R.string.msg_ocr_stub_used), Toast.LENGTH_SHORT).show()
-            }
-        )
-    }
-
     private fun clearForm() {
         edtTitle.text?.clear()
-        edtImageUri.text?.clear()
         edtRecognized.text?.clear()
-        edtConfidence.text?.clear()
         selectedDate = LocalDate.now()
         txtDate.text = selectedDate.toString()
-        spnLanguage.setSelection(0)
+        captureUri = null
+        txtImageStatus.text = ""
+        txtImageStatus.visibility = View.GONE
         edtTitle.requestFocus()
         currentId = null
     }
@@ -231,11 +289,14 @@ class DocumentActivity : AppCompatActivity() {
         edtTitle.setText(doc.Title)
         selectedDate = doc.CaptureDate
         txtDate.text = selectedDate.toString()
-        edtImageUri.setText(doc.ImageUri)
+
+        if (doc.ImageUri.isNotBlank()) {
+            captureUri = Uri.parse(doc.ImageUri)
+            txtImageStatus.text = "Image: ${captureUri?.lastPathSegment ?: "loaded"}"
+            txtImageStatus.visibility = View.VISIBLE
+        }
+
         edtRecognized.setText(doc.RecognizedText)
-        edtConfidence.setText(doc.OcrConfidence.toString())
-        val idx = languages.indexOfFirst { it.Code.equals(doc.Language.Code, ignoreCase = true) }
-        spnLanguage.setSelection(if (idx >= 0) idx else 0)
         Toast.makeText(this, getString(R.string.msg_loaded), Toast.LENGTH_SHORT).show()
     }
 }
