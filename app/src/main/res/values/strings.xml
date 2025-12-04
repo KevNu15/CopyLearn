@@ -53,4 +53,12 @@
     <!-- List -->
     <string name="list_search_hint">Search documents</string>
     <string name="list_empty">No documents found</string>
+
+
+    <!-- API -->
+    <string name="err_save_document">Failed to save document</string>
+    <string name="err_delete_document">Failed to delete document</string>
+    <string name="err_get_document">Failed to retrieve document</string>
+    <string name="err_get_documents">Failed to retrieve documents</string>
+    <string name="err_search_documents">Failed to search documents</string>
 </resources>

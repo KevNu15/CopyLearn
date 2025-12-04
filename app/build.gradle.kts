@@ -36,6 +36,7 @@ android {
 }
 
 dependencies {
+    // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -44,8 +45,27 @@ dependencies {
 
     // ML Kit Text Recognition (OCR)
     implementation(libs.mlkit.text.recognition)
+
+    // ========================================
+    // NUEVAS DEPENDENCIAS: Retrofit y Coroutines
+    // ========================================
+
+    // Retrofit - Cliente HTTP para consumir APIs REST
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // Coroutines - Programación asíncrona
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation(libs.kotlinx.coroutines.play.services)
 
+    // Lifecycle - Para lifecycleScope
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+
+    // ========================================
+    // Testing
+    // ========================================
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
