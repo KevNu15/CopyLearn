@@ -1,65 +1,41 @@
 package Interface
 
+import Entity.ApiResponse
 import Entity.DTODocument
-import Entity.DocumentGetResponse
-import Entity.DocumentResponse
-import Entity.LanguageGetResponse
+import Entity.DTODocumentRequest
+import Entity.DTOLanguage
+import Entity.DeleteRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.HTTP
-import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
 /**
- * Interfaz de Retrofit para la API de CopyLearn
- * Define todos los endpoints disponibles
+ * Retrofit service interface for the CopyLearn API.
+ * Aligned with the API documentation.
  */
 interface IDocumentAPIService {
 
-    /**
-     * GET /documents - Obtener todos los documentos
-     */
-    @GET("/documents")
-    suspend fun getAll(): DocumentGetResponse
+    @GET("documents")
+    suspend fun getAllDocuments(): ApiResponse<List<DTODocument>>
 
-    /**
-     * GET /documents/{id} - Obtener documento por ID
-     */
-    @GET("/documents/{id}")
-    suspend fun getById(@Path("id") documentId: String): DocumentGetResponse
+    @GET("documents/{id}")
+    suspend fun getDocument(@Path("id") id: String): ApiResponse<List<DTODocument>>
 
-    /**
-     * GET /documents/search/{query} - Buscar documentos
-     */
-    @GET("/documents/search/{query}")
-    suspend fun search(@Path("query") searchQuery: String): DocumentGetResponse
+    @GET("documents/search/{query}")
+    suspend fun searchDocuments(@Path("query") query: String): ApiResponse<List<DTODocument>>
 
-    /**
-     * POST /documents - Crear nuevo documento
-     */
-    @Headers("Content-Type: application/json")
-    @POST("/documents")
-    suspend fun postDocument(@Body document: DTODocument): DocumentResponse
+    @POST("documents")
+    suspend fun createDocument(@Body document: DTODocumentRequest): ApiResponse<DTODocument>
 
-    /**
-     * PUT /documents - Actualizar documento existente
-     */
-    @Headers("Content-Type: application/json")
-    @PUT("/documents")
-    suspend fun updateDocument(@Body document: DTODocument): DocumentResponse
+    @PUT("documents")
+    suspend fun updateDocument(@Body document: DTODocumentRequest): ApiResponse<DTODocument>
 
-    /**
-     * DELETE /documents - Eliminar documento
-     */
-    @Headers("Content-Type: application/json")
-    @HTTP(method = "DELETE", path = "/documents", hasBody = true)
-    suspend fun deleteDocument(@Body document: DTODocument): DocumentResponse
+    @HTTP(method = "DELETE", path = "documents", hasBody = true)
+    suspend fun deleteDocument(@Body request: DeleteRequest): ApiResponse<DTODocument>
 
-    /**
-     * GET /languages - Obtener idiomas disponibles
-     */
-    @GET("/languages")
-    suspend fun getLanguages(): LanguageGetResponse
+    @GET("languages")
+    suspend fun getLanguages(): ApiResponse<List<DTOLanguage>>
 }

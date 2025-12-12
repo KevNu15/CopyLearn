@@ -1,7 +1,10 @@
 package Controller
 
 import Entity.DTODocument
+import Entity.DTODocumentRequest
 import Entity.DTOLanguage
+import Entity.DTOLanguageRequest
+import Entity.DeleteRequest
 import Entity.Document
 import Entity.Language
 import Util.CopyLearnAPIService
@@ -15,13 +18,10 @@ import java.time.format.DateTimeFormatter
 /**
  * Controlador de documentos
  * Conecta con la API REST en lugar de usar DataManager
- *
- * Siguiendo el patrón de PersonController en Census
  */
 class DocumentController(private val context: Context) {
 
     var ErrorMessage: String = ""
-
     private val TAG = "DocumentController"
 
     /**
@@ -43,30 +43,53 @@ class DocumentController(private val context: Context) {
             // Validar
             if (!validate(document)) return false
 
-            // Convertir a DTO
-            val dtoDocument = convertToDTODocument(document)
+            Log.d(TAG, "Saving document with ID: ${document.ID}")
+
+            // Convertir a DTO simplificado
+            val dtoRequest = DTODocumentRequest(
+                documentId = document.ID,
+                title = document.Title,
+                captureDate = formatDateToString(document.CaptureDate),
+                imageUri = document.ImageUri,
+                recognizedText = document.RecognizedText,
+                language = DTOLanguageRequest(
+                    code = document.Language.Code,
+                    name = document.Language.Name
+                ),
+                ocrConfidence = document.OcrConfidence
+            )
 
             // Verificar si existe
             val existing = getByIdInternal(document.ID)
 
+            Log.d(TAG, "Document exists: ${existing != null}")
+
             val response = if (existing == null) {
-                // Crear nuevo
-                CopyLearnAPIService.apiDocuments.postDocument(dtoDocument)
+                Log.d(TAG, "Creating new document...")
+                CopyLearnAPIService.apiDocuments.createDocument(dtoRequest)
             } else {
-                // Actualizar existente
-                CopyLearnAPIService.apiDocuments.updateDocument(dtoDocument)
+                Log.d(TAG, "Updating existing document...")
+                CopyLearnAPIService.apiDocuments.updateDocument(dtoRequest)
             }
 
-            if (response.responseCode != 200) {
+            Log.d(TAG, "Response code: ${response.responseCode}, message: ${response.message}")
+
+            if (response.responseCode != 200 && response.responseCode != 201) {
                 ErrorMessage = response.message
                 return false
             }
 
             return true
 
+        } catch (e: retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            Log.e(TAG, "HTTP Error ${e.code()}: $errorBody", e)
+            ErrorMessage = "HTTP ${e.code()}: ${e.message()}"
+            return false
         } catch (e: Exception) {
             Log.e(TAG, "Error saving document: ${e.message}", e)
-            ErrorMessage = context.getString(R.string.err_save_document)
+            e.printStackTrace()
+            ErrorMessage = "Error: ${e.message ?: "Unknown error"}"
             return false
         }
     }
@@ -76,8 +99,12 @@ class DocumentController(private val context: Context) {
      */
     suspend fun Delete(id: String): Boolean {
         try {
-            val dtoDocument = DTODocument(ID = id)
-            val response = CopyLearnAPIService.apiDocuments.deleteDocument(dtoDocument)
+            Log.d(TAG, "Deleting document with ID: $id")
+
+            val deleteRequest = DeleteRequest(documentId = id)
+            val response = CopyLearnAPIService.apiDocuments.deleteDocument(deleteRequest)
+
+            Log.d(TAG, "Delete response: ${response.responseCode}, ${response.message}")
 
             if (response.responseCode != 200) {
                 ErrorMessage = response.message
@@ -86,6 +113,10 @@ class DocumentController(private val context: Context) {
 
             return true
 
+        } catch (e: retrofit2.HttpException) {
+            Log.e(TAG, "HTTP Error deleting: ${e.code()}", e)
+            ErrorMessage = "HTTP ${e.code()}: ${e.message()}"
+            return false
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting document: ${e.message}", e)
             ErrorMessage = context.getString(R.string.err_delete_document)
@@ -111,7 +142,7 @@ class DocumentController(private val context: Context) {
      */
     suspend fun GetAll(): MutableList<Document> {
         return try {
-            val response = CopyLearnAPIService.apiDocuments.getAll()
+            val response = CopyLearnAPIService.apiDocuments.getAllDocuments()
 
             if (response.responseCode != 200) {
                 ErrorMessage = response.message
@@ -142,7 +173,7 @@ class DocumentController(private val context: Context) {
                 return GetAll()
             }
 
-            val response = CopyLearnAPIService.apiDocuments.search(query)
+            val response = CopyLearnAPIService.apiDocuments.searchDocuments(query)
 
             if (response.responseCode != 200) {
                 ErrorMessage = response.message
@@ -178,7 +209,7 @@ class DocumentController(private val context: Context) {
 
             val languages = mutableListOf<Language>()
             response.data.forEach { dtoLang ->
-                languages.add(Language(dtoLang.Code, dtoLang.Name))
+                languages.add(Language(dtoLang.code, dtoLang.name))
             }
 
             languages
@@ -193,29 +224,18 @@ class DocumentController(private val context: Context) {
     // MÉTODOS PRIVADOS
     // ========================================
 
-    /**
-     * Validar documento
-     */
     private fun validate(document: Document): Boolean {
         if (document.Title.isBlank()) {
             ErrorMessage = "Title is required."
             return false
         }
 
-        // ImageUri ya no es obligatorio (puede estar en la nube)
-        // if (document.ImageUri.isBlank()) {
-        //     ErrorMessage = "ImageUri is required."
-        //     return false
-        // }
-
-        // Asegurar CaptureDate
         try {
             document.CaptureDate
         } catch (_: UninitializedPropertyAccessException) {
             document.CaptureDate = LocalDate.now()
         }
 
-        // Default Language
         if (document.Language.Name.isBlank()) {
             document.Language = Language().apply {
                 Code = "en"
@@ -226,56 +246,32 @@ class DocumentController(private val context: Context) {
         return true
     }
 
-    /**
-     * Obtener documento por ID (interno, sin manejo de errores)
-     */
     private suspend fun getByIdInternal(id: String): Document? {
-        val response = CopyLearnAPIService.apiDocuments.getById(id)
+        return try {
+            val response = CopyLearnAPIService.apiDocuments.getDocument(id)
 
-        if (response.responseCode != 200 || response.data.isEmpty()) {
-            return null
+            if (response.responseCode != 200 || response.data.isEmpty()) {
+                null
+            } else {
+                convertToDocument(response.data[0])
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Document not found: $id", e)
+            null
         }
-
-        return convertToDocument(response.data[0])
     }
 
-    /**
-     * Convertir Document a DTODocument
-     */
-    private fun convertToDTODocument(document: Document): DTODocument {
-        val dateString = formatDateToString(document.CaptureDate)
-
-        val dtoLanguage = DTOLanguage(
-            Code = document.Language.Code,
-            Name = document.Language.Name
-        )
-
-        return DTODocument(
-            ID = document.ID,
-            Title = document.Title,
-            CaptureDate = dateString,
-            ImageUri = document.ImageUri,
-            RecognizedText = document.RecognizedText,
-            Language = dtoLanguage,
-            OcrConfidence = document.OcrConfidence
-        )
-    }
-
-    /**
-     * Convertir DTODocument a Document
-     */
     private fun convertToDocument(dtoDoc: DTODocument): Document {
         val document = Document()
-        document.ID = dtoDoc.ID
-        document.Title = dtoDoc.Title
-        document.CaptureDate = parseStringToDate(dtoDoc.CaptureDate)
-        document.ImageUri = dtoDoc.ImageUri
-        document.RecognizedText = dtoDoc.RecognizedText
-        document.OcrConfidence = dtoDoc.OcrConfidence
+        document.ID = dtoDoc.documentId
+        document.Title = dtoDoc.title
+        document.CaptureDate = parseStringToDate(dtoDoc.captureDate)
+        document.ImageUri = dtoDoc.imageUri ?: ""
+        document.RecognizedText = dtoDoc.recognizedText ?: ""
+        document.OcrConfidence = dtoDoc.ocrConfidence ?: 0.0
 
-        // Convertir Language
-        dtoDoc.Language?.let { dtoLang ->
-            document.Language = Language(dtoLang.Code, dtoLang.Name)
+        dtoDoc.language?.let { dtoLang ->
+            document.Language = Language(dtoLang.code, dtoLang.name)
         } ?: run {
             document.Language = Language("en", "English")
         }
@@ -283,17 +279,11 @@ class DocumentController(private val context: Context) {
         return document
     }
 
-    /**
-     * Formatear LocalDate a String (yyyy-MM-dd)
-     */
     private fun formatDateToString(date: LocalDate): String {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         return date.format(formatter)
     }
 
-    /**
-     * Parsear String a LocalDate (yyyy-MM-dd)
-     */
     private fun parseStringToDate(dateString: String): LocalDate {
         return try {
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -304,9 +294,6 @@ class DocumentController(private val context: Context) {
         }
     }
 
-    /**
-     * Idiomas por defecto (fallback)
-     */
     private fun getDefaultLanguages(): MutableList<Language> {
         return mutableListOf(
             Language("en", "English"),
