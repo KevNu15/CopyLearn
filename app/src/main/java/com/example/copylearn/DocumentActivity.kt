@@ -13,14 +13,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import Controller.DocumentController
-import Data.DataManagerSingleton
 import Entity.Document
 import Entity.Language
 import Util.ImageFileUtil
 import Util.OcrUtilMlKit
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 
+/**
+ * Activity para crear/editar documentos
+ * MODIFICADA: Usa lifecycleScope para llamadas asíncronas a la API
+ */
 class DocumentActivity : AppCompatActivity() {
 
     private lateinit var controller: DocumentController
@@ -74,8 +79,8 @@ class DocumentActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_document)
 
-        // Usar el singleton compartido
-        controller = DocumentController(DataManagerSingleton.getInstance())
+        // CAMBIO: Ahora el controller recibe Context
+        controller = DocumentController(this)
 
         edtTitle = findViewById(R.id.edtTitle)
         txtDate = findViewById(R.id.txtDate)
@@ -147,11 +152,9 @@ class DocumentActivity : AppCompatActivity() {
                 this,
                 Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> {
-                // Permission already granted
                 openCamera()
             }
             shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
-                // Show explanation and request permission
                 AlertDialog.Builder(this)
                     .setTitle("Camera Permission Required")
                     .setMessage("This app needs camera access to take photos of documents.")
@@ -162,7 +165,6 @@ class DocumentActivity : AppCompatActivity() {
                     .show()
             }
             else -> {
-                // Request permission directly
                 requestCameraPermission.launch(Manifest.permission.CAMERA)
             }
         }
@@ -237,12 +239,15 @@ class DocumentActivity : AppCompatActivity() {
             .setTitle(getString(R.string.dlg_delete_title))
             .setMessage(getString(R.string.dlg_delete_msg))
             .setPositiveButton(getString(R.string.dlg_yes)) { _, _ ->
-                val ok = controller.Delete(id)
-                if (ok) {
-                    Toast.makeText(this, getString(R.string.msg_deleted), Toast.LENGTH_SHORT).show()
-                    finish()
-                } else {
-                    Toast.makeText(this, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show()
+                // CAMBIO: Usar lifecycleScope para llamada asíncrona
+                lifecycleScope.launch {
+                    val ok = controller.Delete(id)
+                    if (ok) {
+                        Toast.makeText(this@DocumentActivity, getString(R.string.msg_deleted), Toast.LENGTH_SHORT).show()
+                        finish()
+                    } else {
+                        Toast.makeText(this@DocumentActivity, controller.ErrorMessage, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             .setNegativeButton(getString(R.string.dlg_no), null)
@@ -260,12 +265,15 @@ class DocumentActivity : AppCompatActivity() {
             OcrConfidence = 0.95 // Default confidence
         }
 
-        val ok = controller.Save(doc)
-        if (ok) {
-            Toast.makeText(this, getString(R.string.msg_saved), Toast.LENGTH_SHORT).show()
-            if (currentId.isNullOrBlank()) clearForm() else finish()
-        } else {
-            Toast.makeText(this, controller.ErrorMessage, Toast.LENGTH_SHORT).show()
+        // CAMBIO: Usar lifecycleScope para llamada asíncrona
+        lifecycleScope.launch {
+            val ok = controller.Save(doc)
+            if (ok) {
+                Toast.makeText(this@DocumentActivity, getString(R.string.msg_saved), Toast.LENGTH_SHORT).show()
+                if (currentId.isNullOrBlank()) clearForm() else finish()
+            } else {
+                Toast.makeText(this@DocumentActivity, controller.ErrorMessage, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -282,21 +290,26 @@ class DocumentActivity : AppCompatActivity() {
     }
 
     private fun loadDocument(id: String) {
-        val doc = controller.GetById(id) ?: run {
-            Toast.makeText(this, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show()
-            return
-        }
-        edtTitle.setText(doc.Title)
-        selectedDate = doc.CaptureDate
-        txtDate.text = selectedDate.toString()
+        // CAMBIO: Usar lifecycleScope para llamada asíncrona
+        lifecycleScope.launch {
+            val doc = controller.GetById(id)
+            if (doc == null) {
+                Toast.makeText(this@DocumentActivity, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
 
-        if (doc.ImageUri.isNotBlank()) {
-            captureUri = Uri.parse(doc.ImageUri)
-            txtImageStatus.text = "Image: ${captureUri?.lastPathSegment ?: "loaded"}"
-            txtImageStatus.visibility = View.VISIBLE
-        }
+            edtTitle.setText(doc.Title)
+            selectedDate = doc.CaptureDate
+            txtDate.text = selectedDate.toString()
 
-        edtRecognized.setText(doc.RecognizedText)
-        Toast.makeText(this, getString(R.string.msg_loaded), Toast.LENGTH_SHORT).show()
+            if (doc.ImageUri.isNotBlank()) {
+                captureUri = Uri.parse(doc.ImageUri)
+                txtImageStatus.text = "Image: ${captureUri?.lastPathSegment ?: "loaded"}"
+                txtImageStatus.visibility = View.VISIBLE
+            }
+
+            edtRecognized.setText(doc.RecognizedText)
+            Toast.makeText(this@DocumentActivity, getString(R.string.msg_loaded), Toast.LENGTH_SHORT).show()
+        }
     }
 }

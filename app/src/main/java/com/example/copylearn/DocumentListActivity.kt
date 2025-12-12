@@ -10,12 +10,17 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import Controller.DocumentController
-import Data.DataManagerSingleton
 import Entity.Document
+import kotlinx.coroutines.launch
 
+/**
+ * Activity para listar documentos
+ * MODIFICADA: Usa lifecycleScope para llamadas asíncronas a la API
+ */
 class DocumentListActivity : AppCompatActivity() {
 
     private lateinit var controller: DocumentController
@@ -31,8 +36,8 @@ class DocumentListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_document_list)
 
-        // Usar el singleton compartido
-        controller = DocumentController(DataManagerSingleton.getInstance())
+        // CAMBIO: Ahora el controller recibe Context
+        controller = DocumentController(this)
 
         recyclerView = findViewById(R.id.rvDocuments)
         emptyView = findViewById(R.id.txtEmpty)
@@ -102,30 +107,36 @@ class DocumentListActivity : AppCompatActivity() {
     }
 
     private fun deleteDocument(doc: Document) {
-        val success = controller.Delete(doc.ID)
-        if (success) {
-            Toast.makeText(this, getString(R.string.msg_deleted), Toast.LENGTH_SHORT).show()
-            refreshList(lastQuery)
-        } else {
-            Toast.makeText(this, getString(R.string.err_doc_not_found), Toast.LENGTH_SHORT).show()
+        // CAMBIO: Usar lifecycleScope para llamada asíncrona
+        lifecycleScope.launch {
+            val success = controller.Delete(doc.ID)
+            if (success) {
+                Toast.makeText(this@DocumentListActivity, getString(R.string.msg_deleted), Toast.LENGTH_SHORT).show()
+                refreshList(lastQuery)
+            } else {
+                Toast.makeText(this@DocumentListActivity, controller.ErrorMessage, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun refreshList(query: String) {
-        currentDocs = if (query.isBlank()) {
-            controller.GetAll()
-        } else {
-            controller.Search(query)
-        }
+        // CAMBIO: Usar lifecycleScope para llamada asíncrona
+        lifecycleScope.launch {
+            currentDocs = if (query.isBlank()) {
+                controller.GetAll()
+            } else {
+                controller.Search(query)
+            }
 
-        if (currentDocs.isEmpty()) {
-            recyclerView.visibility = View.GONE
-            emptyView.visibility = View.VISIBLE
-        } else {
-            recyclerView.visibility = View.VISIBLE
-            emptyView.visibility = View.GONE
-        }
+            if (currentDocs.isEmpty()) {
+                recyclerView.visibility = View.GONE
+                emptyView.visibility = View.VISIBLE
+            } else {
+                recyclerView.visibility = View.VISIBLE
+                emptyView.visibility = View.GONE
+            }
 
-        adapter.updateDocuments(currentDocs)
+            adapter.updateDocuments(currentDocs)
+        }
     }
 }
