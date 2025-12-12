@@ -7,10 +7,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-/**
- * Singleton que configura Retrofit para conectarse a la API de CopyLearn
- * Siguiendo el patrón del proyecto Census
- */
+
 object CopyLearnAPIService {
 
     /**

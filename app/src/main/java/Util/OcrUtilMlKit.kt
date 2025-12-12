@@ -7,23 +7,12 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.tasks.await
 
-/**
- * Utilidad de OCR con ML Kit Text Recognition (ACTIVADO).
- *
- * Uso recomendado: llamar extractText() con callbacks para no bloquear UI.
- */
+
 object OcrUtilMlKit {
 
     data class OcrResult(val text: String, val confidence: Double)
 
-    /**
-     * Extrae texto de una imagen usando ML Kit (callback-based).
-     *
-     * @param context Contexto para resolver el Uri
-     * @param imageUri Uri de la imagen (content:// o file://)
-     * @param onResult Callback con el resultado exitoso
-     * @param onError Callback en caso de error
-     */
+
     fun extractText(
         context: Context,
         imageUri: Uri,
@@ -49,9 +38,6 @@ object OcrUtilMlKit {
         }
     }
 
-    /**
-     * Versión suspend para uso con coroutines (opcional).
-     */
     suspend fun extractTextSuspend(
         context: Context,
         imageUri: Uri
