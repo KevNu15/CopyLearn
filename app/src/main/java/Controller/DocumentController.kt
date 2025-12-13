@@ -17,7 +17,6 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Controlador de documentos
- * Conecta con la API REST en lugar de usar DataManager
  */
 class DocumentController(private val context: Context) {
 
@@ -220,9 +219,8 @@ class DocumentController(private val context: Context) {
         }
     }
 
-    // ========================================
+
     // MÉTODOS PRIVADOS
-    // ========================================
 
     private fun validate(document: Document): Boolean {
         if (document.Title.isBlank()) {

@@ -19,7 +19,6 @@ import kotlinx.coroutines.launch
 
 /**
  * Activity para listar documentos
- * MODIFICADA: Usa lifecycleScope para llamadas asíncronas a la API
  */
 class DocumentListActivity : AppCompatActivity() {
 

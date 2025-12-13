@@ -14,7 +14,6 @@ import retrofit2.http.Path
 
 /**
  * Retrofit service interface for the CopyLearn API.
- * Aligned with the API documentation.
  */
 interface IDocumentAPIService {
 

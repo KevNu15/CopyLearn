@@ -41,4 +41,9 @@
     <string name="msg_no_image">Primero seleccione una imagen.</string>
     <string name="list_search_hint">Buscar documentos</string>
     <string name="list_empty">No se encontraron documentos.</string>
+    <string name="err_save_document">No se pudo guardar el documento</string>
+    <string name="err_delete_document">No se pudo eliminar el documento</string>
+    <string name="err_get_document">No se pudo obtener el documento</string>
+    <string name="err_get_documents">No se pudieron obtener los documentos</string>
+    <string name="err_search_documents">No se pudo buscar documentos</string>
 </resources>

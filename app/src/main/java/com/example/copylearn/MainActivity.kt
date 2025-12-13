@@ -7,8 +7,6 @@ import androidx.appcompat.app.AppCompatActivity
 
 /**
  * Pantalla principal con dos botones:
- * - Nuevo documento (abre DocumentActivity)
- * - Lista de documentos (abre DocumentListActivity)
  */
 class MainActivity : AppCompatActivity() {
 
