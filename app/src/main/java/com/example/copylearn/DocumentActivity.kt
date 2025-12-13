@@ -24,7 +24,6 @@ import kotlinx.coroutines.launch
 
 /**
  * Activity para crear/editar documentos
- * MODIFICADA: Usa lifecycleScope para llamadas asíncronas a la API
  */
 class DocumentActivity : AppCompatActivity() {
 
